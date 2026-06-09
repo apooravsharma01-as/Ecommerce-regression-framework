@@ -1,8 +1,0 @@
-Current URL: https://stguat.unicommerce.info/products#filters%5B0%5D%5Bid%5D=enabledFilter&filters%5B0%5D%5Bchecked%5D=true&viewName=Enabled
-Current URL: https://stguat.unicommerce.info/products/add
-SKU field loaded
-Tax Type selected
-GST Tax Type selected
-Visible: true
-Enabled: true
-Save Details clicked
