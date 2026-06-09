@@ -1,0 +1,50 @@
+[
+  {
+    "name": "SERVERID",
+    "value": "web1",
+    "domain": "stgauth.unicommerce.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "kukky",
+    "value": "a71808b4a71eda65d7c41b953f6d8511",
+    "domain": "stgauth.unicommerce.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "JSESSIONID",
+    "value": "93DCE004A6D901AD89B6F1730BBCEAB7",
+    "domain": "stgauth.unicommerce.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "SPRING_SECURITY_REMEMBER_ME_COOKIE",
+    "value": "c3VzaGFudEB1bmljb21tZXJjZS5jb206MTc4MjIwNTMwMzkwMTo0NDAzYzQyN2E4ZGRlNjc4MWM5OThmMzE3OGNkMmI4Yg",
+    "domain": "stgauth.unicommerce.com",
+    "path": "/",
+    "expires": 1782205303.410671,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]
+Current URL: https://stguat.unicommerce.info/products#filters%5B0%5D%5Bid%5D=enabledFilter&filters%5B0%5D%5Bchecked%5D=true&viewName=Enabled
+Current URL: https://stguat.unicommerce.info/products/add
+SKU field loaded
+Tax Type selected
+GST Tax Type selected
+Visible: true
+Enabled: true
+Save Details clicked

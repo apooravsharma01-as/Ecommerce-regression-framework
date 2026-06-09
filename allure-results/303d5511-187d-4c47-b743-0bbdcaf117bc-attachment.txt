@@ -1,0 +1,17 @@
+Status: 401
+Headers: {
+  server: 'Apache-Coyote/1.1',
+  unirequestid: '2438b740-b94b-454f-8d86-8c063b5b8aa0',
+  'cache-control': 'no-cache, no-store, max-age=0, must-revalidate',
+  pragma: 'no-cache',
+  expires: '0',
+  'x-xss-protection': '1; mode=block',
+  'x-frame-options': 'SAMEORIGIN',
+  'x-content-type-options': 'nosniff',
+  'content-security-policy': "default-src 'self' https: *; script-src 'self' 'unsafe-inline' *; style-src 'self' 'unsafe-inline' *; frame-src 'self' blob: *; img-src 'self' data: *; worker-src 'self' blob:",
+  'transfer-encoding': 'chunked',
+  date: 'Tue, 09 Jun 2026 09:15:18 GMT',
+  connection: 'close'
+}
+Body:
+{"successful":false,"errors":[{"code":1,"message":"USER_NOT_LOGGED_IN","httpStatusCode":401}]}
