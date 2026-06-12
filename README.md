@@ -85,16 +85,16 @@ docs/ARCHITECTURE.md    # Full architecture
 Create `.env`:
 
 ```env
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
+DB_HOST=
+DB_PORT=
+DB_USER=
 DB_PASSWORD=your_password
-DB_NAME=uniware
+DB_NAME=
 TEST_USERNAME=your@email.com
 TEST_PASSWORD=your_password
-BASE_URL=https://stguat.unicommerce.info
+BASE_URL=
 UNIWARE_PATH=/path/to/Uniware
-FACILITY_CODE=05
+FACILITY_CODE=
 
 # Optional Phase 4
 GEMINI_API_KEY=your_key
