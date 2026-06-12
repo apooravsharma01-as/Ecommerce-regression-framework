@@ -277,24 +277,24 @@ console.log(
 }
     async saveProduct() {
 
-    console.log(
-        'Visible:',
-        await this.saveDetailsButton.isVisible()
-    );
+        const createResponse =
+            this.page.waitForResponse(
+                response =>
+                    response.url().includes(
+                        '/data/catalog/itemType/create'
+                    )
+                    && response.status() === 200,
+                { timeout: 90000 }
+            );
 
-    console.log(
-        'Enabled:',
-        await this.saveDetailsButton.isEnabled()
-    );
+        await this.saveDetailsButton.click({
+            force: true
+        });
 
-    await this.saveDetailsButton.click({
-        force: true
-    });
+        await createResponse;
 
-    console.log(
-        'Save Details clicked'
-    );
-}
+        console.log('Product saved successfully');
+    }
 }
 
 module.exports = { ProductPage };

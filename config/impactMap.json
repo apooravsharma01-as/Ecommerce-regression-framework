@@ -1,0 +1,101 @@
+{
+  "domains": {
+    "product-creation": {
+      "keywords": [
+        "gst",
+        "tax",
+        "product",
+        "sku",
+        "item_type",
+        "itemtype",
+        "item type"
+      ],
+      "uniwarePatterns": [
+        "ItemType",
+        "item_type",
+        "catalog/itemType",
+        "gstTaxType",
+        "taxType"
+      ],
+      "tables": ["item_type"],
+      "endpoints": [
+        "/data/catalog/itemType/create",
+        "/data/catalog/get/itemType"
+      ]
+    },
+    "sale-order": {
+      "keywords": [
+        "sale order",
+        "saleorder",
+        "order",
+        "oms",
+        "customer order"
+      ],
+      "uniwarePatterns": [
+        "SaleOrder",
+        "sale_order",
+        "oms/saleOrder"
+      ],
+      "tables": ["sale_order"],
+      "endpoints": [
+        "/data/oms/saleOrder/create",
+        "/data/oms/saleOrder/search"
+      ]
+    },
+    "login-auth": {
+      "keywords": [
+        "login",
+        "auth",
+        "organization",
+        "session",
+        "oauth"
+      ],
+      "uniwarePatterns": [
+        "Login",
+        "Auth",
+        "OAuth"
+      ],
+      "tables": [],
+      "endpoints": []
+    },
+    "vendor-catalog": {
+      "keywords": [
+        "vendor",
+        "vendor catalog",
+        "vendor item",
+        "procurement",
+        "vendoritemtype"
+      ],
+      "uniwarePatterns": [
+        "VendorItemType",
+        "vendor_item_type",
+        "vendorItemType",
+        "VendorCatalog",
+        "procure/vendor"
+      ],
+      "tables": ["vendor_item_type"],
+      "endpoints": [
+        "/services/rest/v1/purchase/vendorItemType/getVendorItemTypes"
+      ]
+    },
+    "inventory": {
+      "keywords": [
+        "inventory",
+        "stock",
+        "snapshot",
+        "warehouse",
+        "inventory adjustment"
+      ],
+      "uniwarePatterns": [
+        "InventorySnapshot",
+        "inventory_snapshot",
+        "inventory/inventorySnapshot",
+        "ItemTypeInventory"
+      ],
+      "tables": [],
+      "endpoints": [
+        "/services/rest/v1/inventory/inventorySnapshot/get"
+      ]
+    }
+  }
+}

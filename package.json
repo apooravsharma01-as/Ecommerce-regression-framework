@@ -3,7 +3,25 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test tests/ui",
+    "test:db": "playwright test tests/db",
+    "allure:generate": "cp environment.properties allure-results/environment.properties && allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure": "allure generate allure-results --clean -o allure-report && allure open allure-report",
+    "impact": "node agents/runImpact.js",
+    "impact:scan": "node agents/runImpact.js --scan-only",
+    "impact:test": "node testImpactPipeline.js",
+    "phase4:test": "node testPhase4.js",
+    "phase5:test": "node testPhase5.js",
+    "regression": "node agents/runRegression.js",
+    "regression:analyze": "node agents/runRegression.js --no-run",
+    "dashboard:api": "node server/dashboardServer.js",
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "dashboard:build": "npm --prefix dashboard run build",
+    "dashboard": "node server/runDashboard.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -13,5 +31,13 @@
     "@types/node": "^25.6.2",
     "allure-commandline": "^2.42.1",
     "allure-playwright": "^3.9.0"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.18",
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.5"
   }
 }

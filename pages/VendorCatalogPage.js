@@ -4,7 +4,6 @@ class VendorCatalogPage {
 
         this.page = page;
 
-        // Main iframe
         this.frame =
             page.frameLocator('#ngframe');
     }
@@ -14,9 +13,17 @@ class VendorCatalogPage {
         await this.page.goto(
             'https://stguat.unicommerce.info/procure/vendorItemType',
             {
-                waitUntil: 'domcontentloaded'
+                waitUntil: 'networkidle',
+                timeout: 90000
             }
         );
+
+        await this.frame
+            .locator('body')
+            .waitFor({
+                state: 'attached',
+                timeout: 60000
+            });
     }
 
     async clickAddVendorItemMapping() {
@@ -35,10 +42,6 @@ class VendorCatalogPage {
         productSku
     ) {
 
-        // -------------------------
-        // Vendor Name
-        // -------------------------
-
         const vendorInput =
             this.frame
                 .locator(
@@ -47,23 +50,13 @@ class VendorCatalogPage {
                 .first();
 
         await vendorInput.click();
+        await vendorInput.fill(vendorName);
 
-        await vendorInput.fill(
-            vendorName
-        );
-
-        // Dropdown rendered outside iframe
         await this.page
             .locator('.ng-option')
-            .filter({
-                hasText: vendorName
-            })
+            .filter({ hasText: vendorName })
             .first()
             .click();
-
-        // -------------------------
-        // Vendor SKU
-        // -------------------------
 
         await this.frame
             .locator(
@@ -71,19 +64,11 @@ class VendorCatalogPage {
             )
             .fill(vendorSku);
 
-        // -------------------------
-        // Vendor Unit Price
-        // -------------------------
-
         await this.frame
             .locator(
                 'input[placeholder="Enter Vendor Unit Price"]'
             )
             .fill(costPrice);
-
-        // -------------------------
-        // Product SKU
-        // -------------------------
 
         const productInput =
             this.frame
@@ -93,17 +78,11 @@ class VendorCatalogPage {
                 .nth(1);
 
         await productInput.click();
+        await productInput.fill(productSku);
 
-        await productInput.fill(
-            productSku
-        );
-
-        // Dropdown rendered outside iframe
         await this.page
             .locator('.ng-option')
-            .filter({
-                hasText: productSku
-            })
+            .filter({ hasText: productSku })
             .first()
             .click();
     }
