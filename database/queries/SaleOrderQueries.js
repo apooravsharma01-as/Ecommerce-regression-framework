@@ -26,6 +26,32 @@ class SaleOrderQueries {
         return rows[0];
     }
 
+    static async getSaleOrderItemsByCode(code) {
+
+        const connection =
+            await DbConnection.getConnection();
+
+        const [rows] =
+            await connection.execute(
+                `
+                SELECT
+                    soi.id,
+                    soi.code,
+                    soi.status_code,
+                    soi.item_sku
+                FROM sale_order_item soi
+                INNER JOIN sale_order so
+                    ON soi.sale_order_id = so.id
+                WHERE so.code = ?
+                `,
+                [code]
+            );
+
+        await connection.end();
+
+        return rows;
+    }
+
     static async getSaleOrderByCodeWithRetry(
         code,
         maxRetries = 10,

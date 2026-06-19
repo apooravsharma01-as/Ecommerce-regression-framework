@@ -1,16 +1,25 @@
 import { PIPELINE_STEPS } from '../constants';
 
-function stepStatus(index, activeStep, jobStatus) {
-  if (jobStatus === 'passed') return 'done';
-  if (jobStatus === 'failed' && index <= activeStep) {
+function stepStatus(index, activeStep, jobStatus, executionPassed) {
+
+  const pipelineFailed =
+    jobStatus === 'failed'
+    || executionPassed === false;
+
+  if (jobStatus === 'passed' && executionPassed !== false) {
+    return 'done';
+  }
+
+  if (pipelineFailed && index <= activeStep) {
     return index < activeStep ? 'done' : 'error';
   }
+
   if (index < activeStep) return 'done';
   if (index === activeStep) return 'active';
   return 'pending';
 }
 
-export default function PipelineSteps({ activeStep, jobStatus }) {
+export default function PipelineSteps({ activeStep, jobStatus, executionPassed }) {
   return (
     <section className="glass rounded-3xl p-6 animate-slide-up">
       <h2 className="mb-5 text-lg font-semibold text-white">
@@ -19,7 +28,12 @@ export default function PipelineSteps({ activeStep, jobStatus }) {
 
       <div className="grid gap-3 md:grid-cols-5">
         {PIPELINE_STEPS.map((step, index) => {
-          const status = stepStatus(index, activeStep, jobStatus);
+          const status = stepStatus(
+            index,
+            activeStep,
+            jobStatus,
+            executionPassed
+          );
 
           return (
             <div

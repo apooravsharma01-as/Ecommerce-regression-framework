@@ -4,6 +4,8 @@ const DOMAIN_TEMPLATES =
     require('./templates');
 const ScenarioSelector =
     require('./ScenarioSelector');
+const FlowScaffold =
+    require('../scaffold/FlowScaffold');
 
 const LAYER_IMPORTS = {
     'product-creation': {
@@ -22,6 +24,19 @@ const LAYER_IMPORTS = {
 const {
     SaleOrderQueries
 } = require('../../../database/queries/SaleOrderQueries');`
+    },
+    'sale-order-cancellation': {
+        api: `const { SaleOrderApi } =
+    require('../../../api/SaleOrderApi');
+
+const OrderLifecycleHelper =
+    require('../../../utils/OrderLifecycleHelper');`,
+        db: `const OrderLifecycleHelper =
+    require('../../../utils/OrderLifecycleHelper');
+
+const {
+    ShippingPackageQueries
+} = require('../../../database/queries/ShippingPackageQueries');`
     }
 };
 
@@ -33,10 +48,134 @@ const LAYER_DESCRIBE = {
     'sale-order': {
         api: 'Regression: Sale Order',
         db: 'Regression: Sale Order DB'
+    },
+    'sale-order-cancellation': {
+        api: 'Regression: Sale Order Cancellation',
+        db: 'Regression: Sale Order Cancellation DB'
     }
 };
 
+const EVIDENCE_HOOK = `const EvidenceContextHook =
+    require('../../../tests/hooks/evidenceContextHook');
+
+test.beforeEach(({}, testInfo) => {
+    EvidenceContextHook.bind(testInfo);
+});
+`;
+
+const SCENARIO_CATALOG_DOMAINS =
+    new Set([
+        'product-creation',
+        'sale-order',
+        'sale-order-cancellation'
+    ]);
+
 class TestGenerator {
+
+    static getScaffoldImports(rootDir, domain, layer) {
+
+        const manifest =
+            FlowScaffold.loadManifest(rootDir);
+
+        const flow =
+            manifest?.flows?.find(item =>
+                item.id === domain
+            );
+
+        if (!flow) {
+            return '';
+        }
+
+        if (layer === 'api' && flow.files?.api) {
+            const className =
+                flow.apiClass;
+
+            return `const { ${className} } =
+    require('../../../${flow.files.api}');`;
+        }
+
+        if (layer === 'db' && flow.files?.db) {
+
+            const imports = [];
+
+            if (flow.files?.api && flow.apiClass) {
+                imports.push(
+                    `const { ${flow.apiClass} } =
+    require('../../../${flow.files.api}');`
+                );
+            }
+
+            imports.push(
+                `const { ${flow.dbClass} } =
+    require('../../../${flow.files.db}');`
+            );
+
+            return imports.join('\n\n');
+        }
+
+        if (layer === 'ui' && flow.files?.page) {
+            const className =
+                flow.pageClass;
+
+            return `const { ${className} } =
+    require('../../../${flow.files.page}');`;
+        }
+
+        return '';
+    }
+
+    static getDescribeTitle(domain, layer) {
+
+        const titles = {
+            dispatch: {
+                api: 'Regression: Dispatch',
+                db: 'Regression: Dispatch DB',
+                ui: 'Regression: Dispatch UI'
+            },
+            shipment: {
+                api: 'Regression: Shipment',
+                db: 'Regression: Shipment DB',
+                ui: 'Regression: Shipment UI'
+            },
+            picking: {
+                api: 'Regression: Picking',
+                db: 'Regression: Picking DB',
+                ui: 'Regression: Picking UI'
+            },
+            packing: {
+                api: 'Regression: Packing',
+                db: 'Regression: Packing DB',
+                ui: 'Regression: Packing UI'
+            },
+            putaway: {
+                api: 'Regression: Putaway',
+                db: 'Regression: Putaway DB',
+                ui: 'Regression: Putaway UI'
+            },
+            grn: {
+                api: 'Regression: GRN',
+                db: 'Regression: GRN DB',
+                ui: 'Regression: GRN UI'
+            },
+            returns: {
+                api: 'Regression: Returns',
+                db: 'Regression: Returns DB',
+                ui: 'Regression: Returns UI'
+            }
+        };
+
+        return titles[domain]?.[layer]
+            || `Regression: ${domain}`;
+    }
+
+    static sanitizeForComment(text = '') {
+
+        return String(text)
+            .replace(/[\r\n]+/g, ' | ')
+            .replace(/\*\//g, '')
+            .trim()
+            .slice(0, 200);
+    }
 
     static generate(impactResult, options = {}) {
 
@@ -66,6 +205,11 @@ class TestGenerator {
             options.story
             || impactResult.trigger
             || '';
+
+        const safeTrigger =
+            this.sanitizeForComment(
+                impactResult.trigger || story
+            );
 
         const meta = {
             trigger: impactResult.trigger,
@@ -99,9 +243,10 @@ class TestGenerator {
                     this.buildLayerSpec({
                         domain,
                         layer,
-                        trigger: impactResult.trigger,
+                        trigger: safeTrigger,
                         diffAnalysis,
-                        story
+                        story,
+                        rootDir
                     });
 
                 if (!layerSelection?.content) {
@@ -113,8 +258,33 @@ class TestGenerator {
                         layerSelection.summary;
                 }
 
-                const fileContent =
+                let fileContent =
                     layerSelection.content;
+
+                if (layer === 'ui') {
+                    fileContent =
+                        `const UiEvidenceHook =
+    require('../../../tests/hooks/uiEvidenceHook');
+
+${fileContent}`;
+
+                    fileContent =
+                        fileContent.replace(
+                            'test.describe(',
+                            `test.use({
+    video: 'on',
+    screenshot: 'on',
+    trace: 'on',
+    viewport: { width: 1920, height: 1080 }
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+    await UiEvidenceHook.attachVideo(page, testInfo);
+});
+
+test.describe(`
+                        );
+                }
 
                 const file =
                     path.join(
@@ -157,7 +327,8 @@ class TestGenerator {
         layer,
         trigger,
         diffAnalysis,
-        story
+        story,
+        rootDir
     }) {
 
         const scenarios =
@@ -174,11 +345,16 @@ class TestGenerator {
                 ScenarioSelector.summarize(scenarios);
 
             const imports =
-                LAYER_IMPORTS[domain]?.[layer] || '';
+                LAYER_IMPORTS[domain]?.[layer]
+                || this.getScaffoldImports(
+                    rootDir || process.cwd(),
+                    domain,
+                    layer
+                );
 
             const describeTitle =
                 LAYER_DESCRIBE[domain]?.[layer]
-                || `Regression: ${domain}`;
+                || this.getDescribeTitle(domain, layer);
 
             const tests =
                 scenarios
@@ -201,12 +377,23 @@ class TestGenerator {
 const { test, expect } =
     require('@playwright/test');
 
+const EvidenceLogger =
+    require('../../../utils/EvidenceLogger');
+
 ${imports}
 
 test.describe(
     '${describeTitle}',
     () => {
 
+${EVIDENCE_HOOK}
+${layer === 'db' ? `
+test.beforeEach(() => {
+    const DbVerify =
+        require('../../../database/DbVerify');
+    DbVerify.skipIfApiDbMismatch(test);
+});
+` : ''}
 ${tests}
     }
 );
@@ -231,6 +418,10 @@ ${tests}
     }
 
     static shouldGenerateLayer(impactResult, domain, layer) {
+
+        if (LAYER_IMPORTS[domain]?.[layer]) {
+            return true;
+        }
 
         if (layer === 'api') {
             return (

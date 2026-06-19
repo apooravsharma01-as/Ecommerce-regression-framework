@@ -60,7 +60,19 @@ class JiraReporter {
         return lines.join('\n');
     }
 
+    static isEnabled() {
+
+        return process.env.JIRA_COMMENTS_ENABLED === 'true';
+    }
+
     static async postComment(issueKey, report) {
+
+        if (!this.isEnabled()) {
+            return {
+                posted: false,
+                reason: 'JIRA comments disabled (set JIRA_COMMENTS_ENABLED=true to enable)'
+            };
+        }
 
         if (!JiraFetcher.isConfigured()) {
             return {

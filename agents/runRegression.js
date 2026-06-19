@@ -24,6 +24,74 @@ const PrCommenter =
     require('./github/PrCommenter');
 const JiraReporter =
     require('./jira/JiraReporter');
+const FlowScaffold =
+    require('./scaffold/FlowScaffold');
+const StoryKeywordEnricher =
+    require('./story/StoryKeywordEnricher');
+
+function persistReport(report, rootDir) {
+
+    const cacheDir =
+        path.join(rootDir, '.cache');
+
+    if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+    }
+
+    const reportPath =
+        path.join(cacheDir, 'regression-report.json');
+
+    if (fs.existsSync(reportPath)) {
+        try {
+            const existing =
+                JSON.parse(
+                    fs.readFileSync(reportPath, 'utf8')
+                );
+
+            const newDomains =
+                report.generation?.domains?.length || 0;
+
+            const oldDomains =
+                existing.generation?.domains?.length || 0;
+
+            if (newDomains === 0 && oldDomains > 0) {
+                report.generation =
+                    existing.generation;
+                report.impact =
+                    report.impact?.domains?.length
+                        ? report.impact
+                        : existing.impact;
+                report.tests =
+                    report.tests?.length
+                        ? report.tests
+                        : existing.tests;
+                report.selection =
+                    report.selection?.tests?.length
+                        ? report.selection
+                        : existing.selection;
+                report.scaffold =
+                    report.scaffold || existing.scaffold;
+                report.trigger =
+                    report.trigger || existing.trigger;
+            }
+
+            fs.writeFileSync(
+                path.join(
+                    cacheDir,
+                    'regression-report.backup.json'
+                ),
+                JSON.stringify(existing, null, 2)
+            );
+        } catch {
+            // continue with new report
+        }
+    }
+
+    fs.writeFileSync(
+        reportPath,
+        JSON.stringify(report, null, 2)
+    );
+}
 
 function parseArgs(argv) {
 
@@ -38,7 +106,8 @@ function parseArgs(argv) {
         allure: true,
         llm: false,
         commentPr: true,
-        commentJira: true
+        commentJira: false,
+        scaffold: true
     };
 
     for (let i = 0; i < argv.length; i++) {
@@ -85,6 +154,10 @@ function parseArgs(argv) {
 
         if (argv[i] === '--no-jira-comment') {
             options.commentJira = false;
+        }
+
+        if (argv[i] === '--no-scaffold') {
+            options.scaffold = false;
         }
     }
 
@@ -208,6 +281,11 @@ async function resolveInputs(cliOptions, rootDir) {
         }
     }
 
+    const keywordEnrichment =
+        resolved.story
+            ? StoryKeywordEnricher.enrich(resolved.story)
+            : { domains: [], signals: [], keywords: [] };
+
     if (resolved.story && cliOptions.llm) {
 
         console.log(
@@ -227,6 +305,24 @@ async function resolveInputs(cliOptions, rootDir) {
                 resolved.storyParsing.summary
             );
         }
+
+    } else if (resolved.story) {
+
+        resolved.storyParsing = {
+            story: resolved.story,
+            domains: keywordEnrichment.domains,
+            keywords: keywordEnrichment.keywords,
+            signals: keywordEnrichment.signals,
+            source: keywordEnrichment.source,
+            llmUsed: false
+        };
+    }
+
+    if (keywordEnrichment.domains?.length) {
+        console.log(
+            'Story domains:',
+            keywordEnrichment.domains.join(', ')
+        );
     }
 
     return resolved;
@@ -304,7 +400,7 @@ async function main() {
 
     console.log('\n=== Step 2: Impact Analysis ===\n');
 
-    const impact =
+    let impact =
         ImpactAnalyzer.analyze({
             rootDir,
             story: inputs.story,
@@ -314,6 +410,55 @@ async function main() {
             additionalDomains:
                 inputs.storyParsing?.domains || []
         });
+
+    let scaffoldResult = null;
+
+    if (cliOptions.scaffold && inputs.story) {
+
+        console.log('=== Step 2b: Uniware Flow Scaffold ===\n');
+
+        scaffoldResult =
+            FlowScaffold.scaffoldFromStory(
+                inputs.story,
+                {
+                    rootDir,
+                    existingDomains: impact.domains
+                }
+            );
+
+        if (scaffoldResult.scaffolded) {
+
+            console.log(
+                'Scaffolded flows:',
+                scaffoldResult.domains.join(', ')
+            );
+
+            scaffoldResult.flows.forEach(flow => {
+                console.log(`  ${flow.id}:`);
+                console.log(`    API:  ${flow.files.api}`);
+                console.log(`    DB:   ${flow.files.db}`);
+                console.log(`    UI:   ${flow.files.page}`);
+                console.log(`    Spec: ${flow.files.scenarios}`);
+                console.log(
+                    `    Endpoints: ${flow.endpoints.length}`
+                );
+            });
+
+            impact =
+                FlowScaffold.enrichImpact(
+                    impact,
+                    scaffoldResult
+                );
+
+        } else {
+            console.log(
+                'Scaffold skipped:',
+                scaffoldResult.reason
+            );
+        }
+
+        console.log('');
+    }
 
     impact.diffAnalysis = diffAnalysis;
 
@@ -368,6 +513,7 @@ async function main() {
         pr: inputs.pr,
         storyParsing: inputs.storyParsing,
         diffAnalysis,
+        scaffold: scaffoldResult,
         impact,
         selection,
         generation: generated.manifest,
@@ -376,9 +522,19 @@ async function main() {
         tests: allTests
     };
 
+    persistReport(report, rootDir);
+
     if (cliOptions.execute) {
 
         console.log('\n=== Step 5: Test Execution ===\n');
+
+        report.execution = {
+            executed: false,
+            running: true,
+            startedAt: new Date().toISOString()
+        };
+
+        persistReport(report, rootDir);
 
         const result =
             RegressionRunner.run(allTests, {
@@ -392,6 +548,16 @@ async function main() {
             });
 
         report.execution = result;
+
+        const AllureService =
+            require('../server/allureService');
+
+        AllureService.syncReportExecution(
+            report,
+            rootDir
+        );
+
+        persistReport(report, rootDir);
 
         if (result.passed) {
             console.log('\n✅ All tests passed\n');

@@ -10,7 +10,11 @@ const API_PATHS = {
     },
     saleOrder: {
         create: `${BASE_URL}/services/rest/v1/oms/saleOrder/create`,
-        search: `${BASE_URL}/services/rest/v1/oms/saleOrder/search`
+        search: `${BASE_URL}/services/rest/v1/oms/saleOrder/search`,
+        cancel: `${BASE_URL}/data/oms/saleOrder/cancel`,
+        cancelBySku: `${BASE_URL}/data/oms/saleOrder/cancelBySku`,
+        statusUpdate: `${BASE_URL}/data/oms/saleOrder/status/update`,
+        get: `${BASE_URL}/data/oms/saleorder/get`
     },
     vendor: {
         getItemTypes:

@@ -1,8 +1,15 @@
 const { test, expect } =
     require('@playwright/test');
 
+const EvidenceContextHook =
+    require('../hooks/evidenceContextHook');
+
 const { SaleOrderApi } =
     require('../../api/SaleOrderApi');
+
+test.beforeEach(({}, testInfo) => {
+    EvidenceContextHook.bind(testInfo);
+});
 
 test(
     'Create and Search Sale Order Via API',

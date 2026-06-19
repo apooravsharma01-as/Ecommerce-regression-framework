@@ -6,15 +6,18 @@ import {
   fetchLatestReport,
   runRegression
 } from './api';
+import { isStaleEvidenceApi } from './utils/evidenceDisplay';
 import Header from './components/Header';
 import ImpactView from './components/ImpactView';
 import LogTerminal from './components/LogTerminal';
 import PipelineSteps from './components/PipelineSteps';
-import ReportPreview from './components/ReportPreview';
 import RunHistory from './components/RunHistory';
 import TestResults from './components/TestResults';
 import TriggerPanel from './components/TriggerPanel';
 import EvidencePanel from './components/EvidencePanel';
+import FailureAnalysisPanel from './components/FailureAnalysisPanel';
+import LiveEvidenceFeed from './components/LiveEvidenceFeed';
+import RunSummaryPanel from './components/RunSummaryPanel';
 
 const INITIAL_FORM = {
   story: '',
@@ -54,24 +57,24 @@ function buildPayload(form, analyzeOnly = false) {
 
 export default function App() {
   const [apiOnline, setApiOnline] = useState(false);
+  const [apiStale, setApiStale] = useState(false);
   const [form, setForm] = useState(INITIAL_FORM);
   const [running, setRunning] = useState(false);
   const [activeJobId, setActiveJobId] = useState(null);
   const [job, setJob] = useState(null);
   const [report, setReport] = useState(null);
-  const [markdown, setMarkdown] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [error, setError] = useState(null);
 
   const loadInitial = useCallback(async () => {
     try {
-      await fetchHealth();
+      const health = await fetchHealth();
       setApiOnline(true);
+      setApiStale(isStaleEvidenceApi(health));
 
       const latest = await fetchLatestReport();
       if (latest?.report) {
         setReport(latest.report);
-        setMarkdown(latest.markdown);
       }
 
       const history = await fetchJobs();
@@ -102,7 +105,6 @@ export default function App() {
     const latest = await fetchLatestReport();
     if (latest?.report) {
       setReport(latest.report);
-      setMarkdown(latest.markdown);
     }
 
     const history = await fetchJobs();
@@ -130,6 +132,28 @@ export default function App() {
     return () => clearInterval(interval);
   }, [activeJobId, running, pollJob]);
 
+  useEffect(() => {
+    if (!running) {
+      return undefined;
+    }
+
+    const refreshReport = async () => {
+      try {
+        const latest = await fetchLatestReport();
+        if (latest?.report) {
+          setReport(latest.report);
+        }
+      } catch {
+        // keep polling job endpoint
+      }
+    };
+
+    refreshReport();
+    const interval = setInterval(refreshReport, 1500);
+
+    return () => clearInterval(interval);
+  }, [running, activeJobId]);
+
   const startRun = async (analyzeOnly = false) => {
     setError(null);
 
@@ -156,7 +180,7 @@ export default function App() {
       if (data.report) setReport(data.report);
 
       const latest = await fetchLatestReport();
-      if (latest?.markdown) setMarkdown(latest.markdown);
+      if (latest?.report) setReport(latest.report);
     } catch (err) {
       setError(err.message);
     }
@@ -176,7 +200,7 @@ export default function App() {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
-        <Header apiOnline={apiOnline} />
+        <Header apiOnline={apiOnline} apiStale={apiStale} />
 
         {error && (
           <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 animate-slide-up">
@@ -201,6 +225,12 @@ export default function App() {
             <EvidencePanel
               report={report}
               jobStatus={job?.status}
+              running={running}
+            />
+            <FailureAnalysisPanel
+              report={report}
+              jobStatus={job?.status}
+              running={running}
             />
           </div>
 
@@ -208,14 +238,28 @@ export default function App() {
             <PipelineSteps
               activeStep={activeStep}
               jobStatus={job?.status}
+              executionPassed={report?.execution?.passed}
             />
             <LogTerminal
               logs={job?.logs}
               visible={running || Boolean(job?.logs)}
             />
             <ImpactView report={report} />
-            <TestResults report={report} job={job} />
-            <ReportPreview markdown={markdown} />
+            <TestResults
+              report={report}
+              job={job}
+              running={running}
+            />
+            <LiveEvidenceFeed
+              running={running}
+              jobStatus={job?.status}
+              report={report}
+            />
+            <RunSummaryPanel
+              report={report}
+              jobStatus={job?.status}
+              running={running}
+            />
           </div>
         </div>
 

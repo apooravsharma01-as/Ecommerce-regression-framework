@@ -22,6 +22,17 @@ module.exports = {
                 const body =
                     await response.json();
 
+                await EvidenceLogger.logApi(
+                    'Create Product',
+                    {
+                        method: 'POST',
+                        url: '/data/catalog/itemType/create',
+                        request: { sku },
+                        status: response.status(),
+                        response: body
+                    }
+                );
+
                 expect(response.status()).toBe(200);
                 expect(body.successful).toBeTruthy();
                 expect(body.itemType.skuCode).toBe(sku);
@@ -50,6 +61,17 @@ module.exports = {
 
                 const result =
                     await api.getProductBySku(sku);
+
+                await EvidenceLogger.logApi(
+                    'Get Product By SKU',
+                    {
+                        method: 'POST',
+                        url: '/data/catalog/itemType/get',
+                        request: { sku },
+                        status: 200,
+                        response: result
+                    }
+                );
 
                 expect(result.successful).toBeTruthy();
                 expect(result.itemTypeDTO.skuCode).toBe(sku);
@@ -187,6 +209,11 @@ module.exports = {
                 const product =
                     await ProductQueries
                         .getProductBySku(skuCode);
+
+                await EvidenceLogger.logDb(
+                    'Product DB Record',
+                    product
+                );
 
                 expect(product).toBeTruthy();
                 expect(product.sku_code).toBe(skuCode);

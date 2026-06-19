@@ -33,11 +33,13 @@ export default defineConfig({
 ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-  trace: 'on-first-retry',
+  trace: 'on',
 
-  screenshot: 'only-on-failure',
+  screenshot: 'on',
 
-  video: 'retain-on-failure'
+  video: 'on',
+
+  viewport: { width: 1920, height: 1080 }
 },
 
   /* Configure projects for major browsers */

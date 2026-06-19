@@ -63,15 +63,86 @@ class PrImpactScanner {
 
         } catch (error) {
 
+            const gitFallback =
+                this.tryGitBranchDiff(
+                    prNumber,
+                    repoPath
+                );
+
+            if (gitFallback.available) {
+                return gitFallback;
+            }
+
             return {
                 available: false,
                 prNumber,
                 repo,
+                repoPath,
                 changedFiles: [],
                 diffContent: '',
                 error: error.message
             };
         }
+    }
+
+    static tryGitBranchDiff(branchRef, repoPath) {
+
+        if (!branchRef || !repoPath) {
+            return { available: false };
+        }
+
+        const cleanBranch =
+            String(branchRef)
+                .split('/')
+                .pop()
+                .trim();
+
+        const strategies = [
+            branchRef,
+            cleanBranch,
+            `origin/${cleanBranch}`,
+            `feature/${cleanBranch}`
+        ];
+
+        for (const strategy of strategies) {
+
+            try {
+
+                const diffContent =
+                    execSync(
+                        `git -C "${repoPath}" diff production...${strategy}`,
+                        {
+                            encoding: 'utf8',
+                            stdio: 'pipe'
+                        }
+                    ).trim();
+
+                const changedFiles =
+                    execSync(
+                        `git -C "${repoPath}" diff --name-only production...${strategy}`,
+                        {
+                            encoding: 'utf8',
+                            stdio: 'pipe'
+                        }
+                    ).trim().split('\n').filter(Boolean);
+
+                if (changedFiles.length > 0) {
+                    return {
+                        available: true,
+                        prNumber: branchRef,
+                        repoPath,
+                        changedFiles,
+                        diffContent,
+                        source: 'git-branch-fallback'
+                    };
+                }
+
+            } catch {
+                continue;
+            }
+        }
+
+        return { available: false };
     }
 
     static getChangedFiles(options = {}) {
@@ -130,6 +201,19 @@ class PrImpactScanner {
             };
 
         } catch (error) {
+
+            const gitFallback =
+                this.tryGitBranchDiff(
+                    prNumber,
+                    repoPath
+                );
+
+            if (gitFallback.available) {
+                return {
+                    ...gitFallback,
+                    repo
+                };
+            }
 
             return {
                 available: false,

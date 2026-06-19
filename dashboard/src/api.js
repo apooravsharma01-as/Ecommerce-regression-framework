@@ -46,8 +46,9 @@ export async function fetchJob(id) {
   return parseJsonResponse(res);
 }
 
-export async function fetchEvidenceSummary() {
-  const res = await fetch(`${API_BASE}/evidence/summary`);
+export async function fetchEvidenceSummary(live = false) {
+  const query = live ? '?live=1' : '';
+  const res = await fetch(`${API_BASE}/evidence/summary${query}`);
   if (!res.ok) {
     throw new Error(
       res.status === 404

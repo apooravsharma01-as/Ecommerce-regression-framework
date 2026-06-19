@@ -148,7 +148,7 @@ function createJob(body) {
         job.exitCode = code;
         job.status = code === 0 ? 'passed' : 'failed';
 
-        job.report =
+        let report =
             readJsonSafe(
                 path.join(
                     ROOT_DIR,
@@ -156,15 +156,62 @@ function createJob(body) {
                 )
             );
 
+        if (report) {
+            const existing =
+                readJsonSafe(
+                    path.join(
+                        ROOT_DIR,
+                        '.cache/regression-report.json'
+                    )
+                );
+
+            if (
+                existing
+                && (existing.generation?.domains?.length || 0)
+                    > (report.generation?.domains?.length || 0)
+            ) {
+                report.generation =
+                    existing.generation;
+                report.impact =
+                    existing.impact || report.impact;
+                report.tests =
+                    report.tests?.length
+                        ? report.tests
+                        : existing.tests;
+                report.selection =
+                    report.selection || existing.selection;
+                report.trigger =
+                    report.trigger || existing.trigger;
+            }
+
+            report =
+                AllureService.syncReportExecution(
+                    report,
+                    ROOT_DIR
+                );
+
+            fs.writeFileSync(
+                path.join(
+                    ROOT_DIR,
+                    '.cache/regression-report.json'
+                ),
+                JSON.stringify(report, null, 2)
+            );
+        }
+
+        job.report = report;
+
+        if (
+            AllureService.hasAllureResultFiles(ROOT_DIR)
+        ) {
+            AllureService
+                .generateReport(ROOT_DIR, { force: true })
+                .catch(() => {});
+        }
+
         if (!job.report) {
             job.error =
                 'Regression finished but no report was generated.';
-        } else {
-            try {
-                AllureService.generateReport(ROOT_DIR);
-            } catch {
-                // allure optional for dashboard evidence
-            }
         }
     });
 
@@ -184,6 +231,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         ok: true,
         service: 'regression-dashboard-api',
+        evidenceApiVersion: 2,
         rootDir: ROOT_DIR
     });
 });
@@ -226,52 +274,84 @@ app.get('/api/evidence/summary', (req, res) => {
             )
         );
 
+    const live =
+        req.query.live === '1';
+
     res.json(
         AllureService.buildEvidenceSummary(
             ROOT_DIR,
-            report
+            report,
+            { live }
         )
     );
 });
 
-app.post('/api/allure/generate', (req, res) => {
+app.get('/api/allure/status', (req, res) => {
+
+    const paths =
+        AllureService.getPaths(ROOT_DIR);
+
+    const reportReady =
+        fs.existsSync(
+            path.join(paths.report, 'index.html')
+        );
+
+    const hasResults =
+        AllureService.hasAllureResultFiles(ROOT_DIR);
+
+    res.json({
+        reportReady,
+        hasResults,
+        browserUrl: '/reports/allure/index.html',
+        message:
+            !hasResults
+                ? 'No test results yet — run full regression (not Analyze Only)'
+                : !reportReady
+                    ? 'Results found — click Regenerate to build report'
+                    : 'Report ready'
+    });
+});
+
+app.post('/api/allure/generate', async (req, res) => {
 
     try {
 
+        if (
+            !AllureService.hasAllureResultFiles(ROOT_DIR)
+        ) {
+            return res.status(400).json({
+                error:
+                    'No Allure result files found. Run full regression first (not Analyze Only).',
+                browserUrl: '/reports/allure/index.html'
+            });
+        }
+
         const result =
-            AllureService.generateReport(ROOT_DIR);
+            await AllureService.generateReport(
+                ROOT_DIR,
+                { force: true }
+            );
 
         res.json(result);
 
     } catch (error) {
 
         res.status(500).json({
-            error: error.message
+            error: error.message,
+            browserUrl: '/reports/allure/index.html'
         });
     }
 });
 
 app.post('/api/allure/open', (req, res) => {
 
-    try {
+    const result =
+        AllureService.openReport(ROOT_DIR);
 
-        const result =
-            AllureService.openReport(ROOT_DIR);
-
-        res.json({
-            ...result,
-            browserUrl:
-                `http://localhost:${PORT}/reports/allure/index.html`
-        });
-
-    } catch (error) {
-
-        res.status(500).json({
-            error: error.message,
-            browserUrl:
-                `http://localhost:${PORT}/reports/allure/index.html`
-        });
-    }
+    res.json({
+        ...result,
+        browserUrl: '/reports/allure/index.html'
+    });
 });
 
 app.get('/api/report/latest', (req, res) => {
@@ -340,6 +420,16 @@ app.get('/api/regression/jobs/:id', (req, res) => {
         });
     }
 
+    const liveReport =
+        job.status === 'running'
+            ? readJsonSafe(
+                path.join(
+                    ROOT_DIR,
+                    '.cache/regression-report.json'
+                )
+            )
+            : null;
+
     res.json({
         id: job.id,
         status: job.status,
@@ -347,7 +437,7 @@ app.get('/api/regression/jobs/:id', (req, res) => {
         finishedAt: job.finishedAt,
         exitCode: job.exitCode,
         logs: job.logs.join(''),
-        report: job.report,
+        report: job.report || liveReport,
         error: job.error,
         request: job.request
     });

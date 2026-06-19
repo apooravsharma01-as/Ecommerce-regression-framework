@@ -1,14 +1,129 @@
+const fs = require('fs');
+const path = require('path');
+
 const PRODUCT_SCENARIOS =
     require('./scenarios/product-creation');
 const SALE_ORDER_SCENARIOS =
     require('./scenarios/sale-order');
+const SALE_ORDER_CANCELLATION_SCENARIOS =
+    require('./scenarios/sale-order-cancellation');
 
 const DOMAIN_SCENARIOS = {
     'product-creation': PRODUCT_SCENARIOS,
-    'sale-order': SALE_ORDER_SCENARIOS
+    'sale-order': SALE_ORDER_SCENARIOS,
+    'sale-order-cancellation':
+        SALE_ORDER_CANCELLATION_SCENARIOS
 };
 
+function loadGeneratedScenarios() {
+
+    const generatedDir =
+        path.join(__dirname, 'scenarios/generated');
+
+    if (!fs.existsSync(generatedDir)) {
+        return {};
+    }
+
+    const generated = {};
+
+    for (const file of fs.readdirSync(generatedDir)) {
+
+        if (!file.endsWith('.js')) {
+            continue;
+        }
+
+        const domainId =
+            file.replace('.js', '');
+
+        try {
+            generated[domainId] =
+                require(path.join(generatedDir, file));
+        } catch {
+            continue;
+        }
+    }
+
+    return generated;
+}
+
 class ScenarioSelector {
+
+    static extractTitle(scenario = {}) {
+
+        if (scenario.title) {
+            return scenario.title;
+        }
+
+        const code =
+            typeof scenario.code === 'function'
+                ? scenario.code()
+                : '';
+
+        const match =
+            code.match(
+                /test\s*\(\s*['"`]([^'"`]+)['"`]/
+            );
+
+        return match
+            ? match[1]
+            : scenario.id;
+    }
+
+    static loadCatalog() {
+
+        const generated =
+            loadGeneratedScenarios();
+
+        const catalog = [];
+
+        const addDomain = (domain, scenarios) => {
+
+            if (!scenarios) {
+                return;
+            }
+
+            for (const [layer, items] of Object.entries(scenarios)) {
+
+                if (!Array.isArray(items)) {
+                    continue;
+                }
+
+                for (const scenario of items) {
+                    catalog.push({
+                        domain,
+                        layer,
+                        id: scenario.id,
+                        type: scenario.type,
+                        tier: scenario.tier,
+                        title: this.extractTitle(scenario)
+                    });
+                }
+            }
+        };
+
+        for (const [domain, scenarios] of Object.entries(DOMAIN_SCENARIOS)) {
+            addDomain(domain, scenarios);
+        }
+
+        for (const [domain, scenarios] of Object.entries(generated)) {
+            addDomain(domain, scenarios);
+        }
+
+        return catalog;
+    }
+
+    static findInCatalog({
+        domain,
+        layer,
+        id
+    }) {
+
+        return this.loadCatalog().find(item =>
+            item.domain === domain
+            && item.layer === layer
+            && item.id === id
+        );
+    }
 
     static select({
         domain,
@@ -17,8 +132,12 @@ class ScenarioSelector {
         story = ''
     }) {
 
+        const generated =
+            loadGeneratedScenarios();
+
         const catalog =
-            DOMAIN_SCENARIOS[domain];
+            DOMAIN_SCENARIOS[domain]
+            || generated[domain];
 
         if (!catalog || !catalog[layer]) {
             return [];
@@ -106,6 +225,25 @@ class ScenarioSelector {
             sku: ['sku'],
             product: ['product', 'item type', 'itemtype'],
             order: ['sale order', 'saleorder', 'order'],
+            dispatch: ['dispatch', 'manifest', 'rts'],
+            cancellation: [
+                'cancellation',
+                'cancel',
+                'cancelled',
+                'manifested',
+                'ready to ship'
+            ],
+            shipment: ['shipment', 'awb', 'courier', 'label'],
+            picking: ['picking', 'picklist', 'picker'],
+            packing: ['packing', 'packer', 'staging'],
+            putaway: ['putaway', 'put away'],
+            grn: ['grn', 'inflow', 'goods receipt'],
+            returns: ['return', 'rto', 'reverse pickup'],
+            international: ['international', 'marketplace', 'cross-border', 'noon', 'namshi'],
+            pincode: ['pincode', 'postal', 'zip'],
+            state: ['state', 'state code'],
+            invoice: ['invoice', 'tax configuration'],
+            facility: ['facility allocation', 'allocation rule'],
             duplicate: ['duplicate'],
             boundary: ['boundary', 'limit', 'max length', 'edge']
         };
@@ -128,7 +266,9 @@ class ScenarioSelector {
             edge: selected.filter(s => s.type === 'edge').length,
             scenarios: selected.map(s => ({
                 id: s.id,
-                type: s.type
+                type: s.type,
+                title: this.extractTitle(s),
+                tier: s.tier
             }))
         };
     }

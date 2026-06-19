@@ -23,13 +23,55 @@
         "/data/catalog/get/itemType"
       ]
     },
+    "sale-order-cancellation": {
+      "keywords": [
+        "cancellation",
+        "cancel",
+        "cancelled",
+        "manifested",
+        "ready to ship",
+        "rts",
+        "dispatched",
+        "putaway"
+      ],
+      "uniwarePatterns": [
+        "SaleOrder",
+        "sale_order",
+        "ShippingPackage",
+        "shipping_package",
+        "ShippingManifest",
+        "cancel"
+      ],
+      "tables": [
+        "shipping_package",
+        "shipping_manifest",
+        "shipping_manifest_item",
+        "sale_order",
+        "sale_order_item"
+      ],
+      "endpoints": [
+        "/data/oms/saleOrder/cancel",
+        "/data/oms/saleOrder/status/update",
+        "/data/oms/saleorder/get"
+      ]
+    },
     "sale-order": {
       "keywords": [
         "sale order",
         "saleorder",
         "order",
         "oms",
-        "customer order"
+        "customer order",
+        "international",
+        "marketplace",
+        "pincode",
+        "postal",
+        "state",
+        "country",
+        "invoice",
+        "facility allocation",
+        "failed order",
+        "cross-border"
       ],
       "uniwarePatterns": [
         "SaleOrder",

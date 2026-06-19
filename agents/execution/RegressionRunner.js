@@ -20,6 +20,11 @@ class RegressionRunner {
             };
         }
 
+        const AllureService =
+            require('../../server/allureService');
+
+        AllureService.clearRunArtifacts(rootDir);
+
         const command =
             [
                 'npx playwright test',

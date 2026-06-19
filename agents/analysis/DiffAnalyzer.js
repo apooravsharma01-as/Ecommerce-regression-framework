@@ -17,7 +17,15 @@ const SIGNAL_PATTERNS = [
     { signal: 'vendor', patterns: [/vendor/i, /procure/i] },
     { signal: 'duplicate', patterns: [/duplicate/i, /already exists/i, /unique/i] },
     { signal: 'boundary', patterns: [/@size/i, /maxlength/i, /minlength/i, /length must/i] },
-    { signal: 'auth', patterns: [/oauth/i, /login/i, /auth/i] }
+    { signal: 'auth', patterns: [/oauth/i, /login/i, /auth/i] },
+    { signal: 'international', patterns: [/international/i, /marketplace/i, /cross-border/i, /noon/i, /namshi/i] },
+    { signal: 'pincode', patterns: [/pincode/i, /postal/i, /zipcode/i] },
+    { signal: 'state', patterns: [/state code/i, /defined_state_codes/i, /state\b/i] },
+    { signal: 'invoice', patterns: [/invoice/i, /tax configuration/i, /country\s*×\s*state/i] },
+    { signal: 'facility', patterns: [/facility allocation/i, /allocation rule/i] },
+    { signal: 'dispatch', patterns: [/dispatch/i, /manifest/i] },
+    { signal: 'shipment', patterns: [/shipment/i, /shipping package/i, /awb/i] },
+    { signal: 'returns', patterns: [/return/i, /rto/i, /reverse pickup/i] }
 ];
 
 class DiffAnalyzer {

@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-16T11:12:53.642Z",
+  "lessons": [
+    {
+      "id": "uat-db-api-split",
+      "occurrences": 1,
+      "firstSeen": "2026-06-16T11:12:53.122Z",
+      "lastSeen": "2026-06-16T11:12:53.122Z",
+      "lastTrigger": "project bootstrap",
+      "symptom": "API writes to STGUAT but DB queries local MySQL — 0 rows or mismatch.",
+      "fix": "Set DB_USE_UAT=true, run npm run db:tunnel, verify with npm run db:diagnose.",
+      "neverAgain": "Never run UAT API tests against local DB without tunnel.",
+      "active": true,
+      "sources": [
+        {
+          "at": "2026-06-16T11:12:53.122Z",
+          "source": "bootstrap",
+          "detail": "Known mistake from initial framework hardening"
+        }
+      ]
+    },
+    {
+      "id": "api-http-200-only",
+      "occurrences": 2,
+      "firstSeen": "2026-06-16T11:12:53.122Z",
+      "lastSeen": "2026-06-16T11:12:53.642Z",
+      "lastTrigger": "Accepting Cancellation on Ready to Ship and Manifested State",
+      "symptom": "Test treated HTTP 200 as pass while Uniware returned successful:false.",
+      "fix": "Use ApiAssertions.assertPositiveResponse / assertNegativeResponse.",
+      "neverAgain": "Never assert only HTTP status for Uniware OMS APIs.",
+      "active": true,
+      "sources": [
+        {
+          "at": "2026-06-16T11:12:53.642Z",
+          "source": "post-run",
+          "detail": "tests/generated/regression/dispatch.db.spec.js"
+        },
+        {
+          "at": "2026-06-16T11:12:53.122Z",
+          "source": "bootstrap",
+          "detail": "Known mistake from initial framework hardening"
+        }
+      ]
+    },
+    {
+      "id": "db-zero-rows-as-pass",
+      "occurrences": 1,
+      "firstSeen": "2026-06-16T11:12:53.122Z",
+      "lastSeen": "2026-06-16T11:12:53.122Z",
+      "lastTrigger": "project bootstrap",
+      "symptom": "DB check passed or ignored when 0 rows returned for row-required.",
+      "fix": "Use DbVerify.assertRowFound and verification row-required.",
+      "neverAgain": "Never treat 0 DB rows as passed when a real record is required.",
+      "active": true,
+      "sources": [
+        {
+          "at": "2026-06-16T11:12:53.122Z",
+          "source": "bootstrap",
+          "detail": "Known mistake from initial framework hardening"
+        }
+      ]
+    },
+    {
+      "id": "fake-shipping-package-code",
+      "occurrences": 2,
+      "firstSeen": "2026-06-16T11:12:53.122Z",
+      "lastSeen": "2026-06-16T11:12:53.642Z",
+      "lastTrigger": "Accepting Cancellation on Ready to Ship and Manifested State",
+      "symptom": "Dispatch/cancel tests used fabricated SHIPPINGPACKAGECODE_* IDs.",
+      "fix": "Use ShippingPackageQueries.findFixtureByStatus or TEST_RTS_PACKAGE_CODE.",
+      "neverAgain": "Never use SHIPPINGPACKAGECODE_ + Date.now() for positive proof tests.",
+      "active": true,
+      "sources": [
+        {
+          "at": "2026-06-16T11:12:53.642Z",
+          "source": "post-run",
+          "detail": "API · Dispatch & Manifest DB probe"
+        },
+        {
+          "at": "2026-06-16T11:12:53.122Z",
+          "source": "bootstrap",
+          "detail": "Known mistake from initial framework hardening"
+        }
+      ]
+    },
+    {
+      "id": "missing-rts-manifest-fixture",
+      "occurrences": 1,
+      "firstSeen": "2026-06-16T11:12:53.122Z",
+      "lastSeen": "2026-06-16T11:12:53.122Z",
+      "lastTrigger": "project bootstrap",
+      "symptom": "Cancellation tests failed — no RTS/manifest/dispatched package in UAT DB.",
+      "fix": "Set TEST_RTS_PACKAGE_CODE / TEST_MANIFESTED_PACKAGE_CODE in .env or seed UAT data.",
+      "neverAgain": "Never run cancellation positive tests without a real lifecycle fixture.",
+      "active": true,
+      "sources": [
+        {
+          "at": "2026-06-16T11:12:53.122Z",
+          "source": "bootstrap",
+          "detail": "Known mistake from initial framework hardening"
+        }
+      ]
+    },
+    {
+      "id": "analyze-only-stale-proof",
+      "occurrences": 2,
+      "firstSeen": "2026-06-16T11:12:53.122Z",
+      "lastSeen": "2026-06-16T11:12:53.642Z",
+      "lastTrigger": "Accepting Cancellation on Ready to Ship and Manifested State",
+      "symptom": "Report regenerated without executing tests — evidence is stale.",
+      "fix": "Run full regression (not Analyze Only) for API/DB proof.",
+      "neverAgain": "Never claim pass/fail from analyze-only runs.",
+      "active": true,
+      "sources": [
+        {
+          "at": "2026-06-16T11:12:53.642Z",
+          "source": "post-run",
+          "detail": "analyze-only or no execution"
+        },
+        {
+          "at": "2026-06-16T11:12:53.122Z",
+          "source": "bootstrap",
+          "detail": "Known mistake from initial framework hardening"
+        }
+      ]
+    },
+    {
+      "id": "db-tunnel-down",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastTrigger": null,
+      "symptom": "DB connection refused — UAT tunnel not running.",
+      "fix": "Run npm run db:tunnel in a separate terminal before regression.",
+      "neverAgain": "Never start DB tests without an open UAT tunnel when DB_USE_UAT=true.",
+      "active": true,
+      "sources": []
+    },
+    {
+      "id": "pending-verification-as-rts",
+      "occurrences": 0,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastTrigger": null,
+      "symptom": "Fresh API-created orders are PENDING_VERIFICATION — not RTS/manifest.",
+      "fix": "Use OrderLifecycleHelper fixtures for cancellation; create order only for negative lifecycle check.",
+      "neverAgain": "Never expect channel cancel at RTS on a freshly created API order.",
+      "active": true,
+      "sources": []
+    }
+  ]
+}

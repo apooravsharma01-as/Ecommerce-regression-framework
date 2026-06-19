@@ -1,0 +1,16 @@
+module.exports = {
+    SALE_ORDER: {
+        PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+        CREATED: 'CREATED',
+        CANCELLED: 'CANCELLED'
+    },
+    SHIPPING_PACKAGE: {
+        READY_TO_SHIP: 'READY_TO_SHIP',
+        MANIFESTED: 'MANIFESTED',
+        DISPATCHED: 'DISPATCHED',
+        CLOSED: 'CLOSED'
+    },
+    ITEM: {
+        CANCELLED: 'CANCELLED'
+    }
+};

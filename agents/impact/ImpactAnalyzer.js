@@ -6,6 +6,8 @@ const UniwareSourceTracer =
     require('../uniware/UniwareSourceTracer');
 const GitImpactScanner =
     require('../uniware/GitImpactScanner');
+const StoryKeywordEnricher =
+    require('../story/StoryKeywordEnricher');
 
 class ImpactAnalyzer {
 
@@ -48,8 +50,21 @@ class ImpactAnalyzer {
                     graph
                 );
 
+            const enriched =
+                StoryKeywordEnricher.enrich(
+                    options.story
+                );
+
+            storyImpact.domains =
+                this.mergeUnique(
+                    storyImpact.domains,
+                    enriched.domains
+                );
+
             Object.assign(result, storyImpact);
             result.trigger = options.story;
+            result.storySignals =
+                enriched.signals || [];
 
         }
 
